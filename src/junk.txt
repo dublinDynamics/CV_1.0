@@ -1,0 +1,258 @@
+void base(bool direction){
+        bool printBaseVals = false;
+        /*
+                           {0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+                            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+                            1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                            2,  2,  2,  2,  2,  3,  3,  3,  4,  4,
+                            4,  5,  5,  5,  6,  6,  6,  7,  8,  8,
+                            8,  9,  9,  10, 10, 11, 11, 12, 13, 13,
+                            14, 15, 16, 16, 17, 18, 19, 19, 20, 21,
+                            22, 23, 24, 25, 26, 27, 28, 29, 31, 32,
+                            33, 34, 35, 37, 38, 39, 41, 42, 44, 45,
+                            47, 48, 50, 51, 53, 55, 57, 58, 60, 62,
+                            64, 66, 68, 70, 72, 74, 76, 78, 80, 83,
+                            85, 87, 89, 92, 94, 97, 99,102,104,107,
+                            110,113,115,118,121,124,127,127};
+
+        */
+        //array has 128 elements so right base wouldn't go out of range
+        int trueSpeed[] =   {0,  3,  3,  3,  3,  3, 10, 10, 10, 10,
+                            10, 10, 10, 10, 12, 12, 12, 12, 12, 12,
+                            14, 14, 14, 14, 14, 14, 20, 20, 20, 20,
+                            20, 20, 20, 25, 25, 25, 25, 25, 25, 25,
+                            30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+                            45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
+                            55, 55, 55, 55, 55, 55, 55, 55, 55, 55,
+                            66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
+                            79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
+                            89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
+                            95, 95, 95, 99, 99, 99, 99,104,104,104,
+                            107,107,107,113,113,113,113,113,116,116,
+                            116,116,123,123,123,127,127,127};
+        if (baseState == 0) {
+            //normal direction
+            if (direction == false){
+                //left base true speed
+                if (Controller1.Axis3.value() >= 0) {
+                    Baseleft1.spin(directionType::fwd,(trueSpeed[Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseleft2.spin(directionType::fwd,(trueSpeed[Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+                if (Controller1.Axis3.value() < 0) {
+                    Baseleft1.spin(directionType::rev,(trueSpeed[-Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseleft2.spin(directionType::rev,(trueSpeed[-Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+
+                //right base true speed
+                if (Controller1.Axis2.value() >= 0) {
+                    Baseright1.spin(directionType::fwd,-(trueSpeed[Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseright2.spin(directionType::fwd,-(trueSpeed[Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+                if (Controller1.Axis2.value() < 0) {
+                    Baseright1.spin(directionType::rev,-(trueSpeed[-Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseright2.spin(directionType::rev,-(trueSpeed[-Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+
+                if (printBaseVals){
+                    Brain.Screen.print("left base val: ");
+                    Brain.Screen.print(Controller1.Axis3.value());
+                    Brain.Screen.print("  right base rpm: ");
+                    if (Controller1.Axis2.value() >= 0) {
+                        Brain.Screen.print(-(trueSpeed[Controller1.Axis2.value()]*(12.0/127.0)));
+                    }
+                    if (Controller1.Axis2.value() < 0) {
+                        Brain.Screen.print(-(trueSpeed[-Controller1.Axis2.value()]*(12.0/127.0)));
+                    }
+                    Brain.Screen.print("        ");
+                    Brain.Screen.newLine();
+                }
+            }
+            //reversed direction
+            if (direction){
+                //left base true speed
+                if (Controller1.Axis3.value() >= 0) {
+                    Baseright1.spin(directionType::fwd,(trueSpeed[Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseright2.spin(directionType::fwd,(trueSpeed[Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+                if (Controller1.Axis3.value() < 0) {
+                    Baseright1.spin(directionType::rev,(trueSpeed[-Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseright2.spin(directionType::rev,(trueSpeed[-Controller1.Axis3.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+
+                //right base true speed
+                if (Controller1.Axis2.value() >= 0) {
+                    Baseleft1.spin(directionType::fwd,-(trueSpeed[Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseleft2.spin(directionType::fwd,-(trueSpeed[Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+                if (Controller1.Axis2.value() < 0) {
+                    Baseleft1.spin(directionType::rev,-(trueSpeed[-Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                    Baseleft2.spin(directionType::rev,-(trueSpeed[-Controller1.Axis2.value()]*(12.0/127.0)),voltageUnits::volt);
+                }
+
+                if (printBaseVals){
+                    Brain.Screen.print("left base rpm: ");
+                    Brain.Screen.print(Controller1.Axis2.value()*(12.0/127.0));
+                    Brain.Screen.print("  right base rpm: ");
+                    Brain.Screen.print(Controller1.Axis3.value()*(12.0/127.0));
+                    Brain.Screen.print("        ");
+                    Brain.Screen.newLine();
+                }
+            }
+        }
+        //for the brake
+        else if (baseState == 1) {
+            /*
+            baseAError = baseCurrentA - currentA;
+            */
+            baseLeft1Error = baseLeft1StopVal - baseLeft1Current;
+            baseLeft2Error = baseLeft2StopVal - baseLeft2Current;
+            baseRight1Error = baseRight1StopVal - baseRight1Current;
+            baseRight2Error = baseRight2StopVal - baseRight2Current;
+            //left base goes backwards
+            Baseleft1.spin(directionType::fwd,(baseLeft1Error * baseAKp),voltageUnits::volt);
+            Baseleft2.spin(directionType::fwd,(baseLeft2Error * baseAKp),voltageUnits::volt);
+            //right base goes forward
+            Baseright1.spin(directionType::fwd,-(baseRight1Error * baseAKp),voltageUnits::volt);
+            Baseright2.spin(directionType::fwd,-(baseRight2Error * baseAKp),voltageUnits::volt);
+        }
+    }
+
+
+
+
+
+
+
+
+
+    /*
+void baseOP (void* param) {
+	bool printBaseVals = false;
+	while (true) {
+	 	//left base true speed
+	 	left_mtr = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y));
+		left_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y));
+
+	 	//right base true speed
+	  right_mtr = returnTrueSpeed (master.get_analog(ANALOG_RIGHT_Y));
+		right_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_RIGHT_Y));
+
+	 	if (printBaseVals){
+	     	pros::lcd::print(3, "left_mtr: %d", left_mtr);
+				pros::lcd::print(4, "left_mtr2: %f", left_mtr2);
+				pros::lcd::print(5, "right_mtr: %f", right_mtr);
+				pros::lcd::print(6, "right_mtr2: %f", right_mtr2);
+	 	}
+	}
+}
+*/
+
+
+
+
+
+
+//pros::Task jankyBase (baseOP);
+
+
+
+//angular correction in clockwise direction
+  if (clockwise) {
+    //make sure currA - targetAngle is less than M_PI and positive
+    while ((currA < targetAngle) || (currA - targetAngle) > 2*M_PI){
+      if (currA < targetAngle){
+        currA += 2*M_PI;
+      }
+      if ((currA - targetAngle) > 2*M_PI){
+        currA -= 2*M_PI;
+      }
+    }
+    ...
+  }
+  else if (clockwise == false) {
+    //make sure targetAngle - currA is less than or equal to M_PI and positive
+    while ((targetAngle < currA) || (targetAngle - currA) > 2*M_PI){
+      if (targetAngle < currA){
+        currA -= 2*M_PI;
+      }
+      if ((targetAngle - currA) > 2*M_PI){
+        currA += 2*M_PI;
+      }
+    }
+    ...
+  }
+
+
+
+
+double targetA;
+double turnToErr;
+double turnToLastErr;
+double turnToDeriv;
+
+void shortestTurn (double targetAngle, double turnToKp = 5.0, double turnToKi = 0.0, double turnToKd = 2.0) {
+  bool clockwise = false; //false turns counterclockwise, true turns clockwise to reach targetAngle
+  double currABounded; //basically another currA used so currA itself will not be changed
+
+  //turn these angles to between 0 and 2*M_PI radians
+  targetAngle = makeAngleSimple(targetAngle);
+  currABounded = makeAngleSimple(currA);
+
+  //determine the direction of correction
+  //separates negative and positive errors to prevent conflict
+  if ((targetAngle - currABounded) >= 0){
+    //currA always reaches targetAngle in less than or equal to M_PI degrees
+    if ((targetAngle - currABounded) > M_PI) {
+      clockwise = true;
+    }
+    else {
+      clockwise = false;
+    }
+  }
+  else if ((targetAngle - currABounded) < 0){
+    //currA always reaches targetAngle in less than or equal to M_PI degrees
+    if ((targetAngle - currABounded) > -M_PI) {
+        clockwise = true;
+    }
+    else {
+        clockwise = false;
+    }
+  }
+
+  //angular correction in clockwise direction
+  if (clockwise) {
+    //pid working
+    //caculates error and derivative
+    //since direction is already determined at this point, maleAngleSimple() can be applied here
+    turnToErr = makeAngleSimple(currA - targetAngle); //positive clockwise error
+    turnToDeriv = makeAngleSimple(turnToErr - turnToLastErr);
+    //prints stuff
+    if (printAngle) {
+      pros::lcd::print(6, "cA: %f, tErr: %f", currA, turnToErr);
+    }
+    //left base goes forward
+    left_mtr = returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+		left_mtr2 = returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+	 	//right base goes backwards
+	  right_mtr = -returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+		right_mtr2 = -returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+  }
+  //angular correction in counterclockwise direction
+  else if (clockwise == false) {
+    //pid working
+    //caculates error and derivative
+    //since direction is already determined at this point, maleAngleSimple() can be applied here
+    turnToErr = makeAngleSimple(targetAngle - currA);
+    turnToDeriv = makeAngleSimple(turnToErr - turnToLastErr);
+    //prints stuff
+    if (printAngle) {
+      pros::lcd::print(6, "cA: %f", currA);
+    }
+    //left base goes backwards
+    left_mtr = -returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+		left_mtr2 = -returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+	 	//right base goes forward
+	  right_mtr = returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+		right_mtr2 = returnTrueSpeed ((turnToErr * turnToKp) + (turnToDeriv * turnToKd));
+  }
+}
