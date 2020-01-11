@@ -64,20 +64,6 @@ int trueSpeed[] =   {0,  3,  3,  3,  3,  3, 10, 10, 10, 10,
                     95, 95, 95, 99, 99, 99, 99, 104,104,104,
                     107,107,107,113,113,113,113,113,116,116,
                     116,116,123,123,123,127,127,127};
-int trueSpeedTurn[] =   {0,  3,  3,  3,  3,  3, 10, 10, 10, 10,
-                    10, 10, 10, 10, 12, 12, 12, 12, 12, 12,
-                    14, 14, 14, 14, 14, 14, 20, 20, 20, 20,
-                    20, 20, 20, 25, 25, 25, 25, 25, 25, 25,
-                    30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
-                    45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
-                    55, 55, 55, 55, 55, 55, 55, 55, 55, 55,
-                    66, 66, 66, 66, 66, 66, 66, 66, 66, 66,
-                    79, 79, 79, 79, 79, 79, 79, 79, 79, 79,
-                    89, 89, 89, 89, 89, 89, 89, 89, 89, 89,
-                    95, 95, 95, 99, 99, 99, 99, 104,104,104,
-                    107,107,107,113,113,113,113,113,116,116,
-                    116,116,123,123,123,127,127,127};
-
 
 /*
 int trueSpeed[] =  {0,  0,  3,  3,  3,  3,  10, 10, 10, 10,
@@ -110,11 +96,11 @@ int returnTrueSpeed (int controllerVal) {
 bool const printBaseVals = false;
 bool const printLiftVals = false;
 bool const printRollerVals = false;
-bool const printTrayVals = true;
+bool const printTrayVals = false;
 bool const printAngle = false;
 bool const printTime = false;
 bool const printPosTrackVal = false;
-bool const printPIDBasedAutonVal1 = false;
+bool const printPIDBasedAutonVal1 = true;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -174,6 +160,7 @@ static double rightRollerErr = 0;
 static double currRightRollerVal = 0;
 //shared roller variables
 static bool rollerHold = false;
+static int autonRoller = 0; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold
 
 void updateRollerPID (void* param) {
   while (true) {
@@ -191,17 +178,17 @@ void updateRollerPID (void* param) {
 			pros::lcd::print(7, "left_roller_mtr: %d", (leftRollerErr * leftRollerKp));
 		}
 		//Manual roller code
-		if (master.get_digital(DIGITAL_L1)) {
+		if (master.get_digital(DIGITAL_L1) || (autonRoller == 1)) {
 			rollerHold = false;
 			left_roller_mtr = -127;
 			right_roller_mtr = -127;
 		}
-	  else if (master.get_digital(DIGITAL_L2)) {
+	  else if (master.get_digital(DIGITAL_L2) || (autonRoller == 2)) {
 			rollerHold = false;
 			left_roller_mtr = 127;
 			right_roller_mtr = 127;
 		}
-		else if (rollerHold == false) {
+		else if ((rollerHold == false) || (autonRoller == 3)) {
 			rollerHold = true;
 			leftRollerSetVal = currLeftRollerVal;
 			rightRollerSetVal = currRightRollerVal;
@@ -229,8 +216,9 @@ static bool trayHold = false;
 
 //variables for the automated scoring sequence
 static const double autoTrayKp = 0.5;
-static const double autoTraySetVal = -1500;
+static const double autoTraySetVal = -1600;
 static bool autoTray = false;
+static bool autonTray = false; //this is used during auton, if it's true, then the tray will go up from fast to slow using pid (just like the up button on the controller)
 
 void updateTrayPID (void* param) {
   while (true) {
@@ -264,13 +252,13 @@ void updateTrayPID (void* param) {
 			trayHold = false;
 			tray_mtr = 32;
 		}
-    else if (master.get_digital(DIGITAL_UP)) {
+    else if (master.get_digital(DIGITAL_UP) || autonTray) {
 			trayHold = false;
 			//traySetVal = currTrayVal;
       traySetVal = autoTraySetVal;
 
       if (currTrayVal < -800) {
-        trayKp = 0.2;
+        trayKp = 0.15;
       } else {
         trayKp = autoTrayKp;
       }
@@ -508,11 +496,23 @@ void turnTo (double tA, int t, double turnToKp = 5.0, double turnToKi = 0.0, dou
 //IMPORTANT: BEFORE USING PID-BASED AUTON, MAKE SURE TO TURN OFF THE TASK THAT UPDATES THE ROBOT POSITION FOR POS TRACK.
 //YOU CAN FIND THIS IN initialize() BELOW
 
-
-
 //PID-based auton stuff
 //go a set amount of distance until the specified time is reached, or until errCutTime is reached
 //errCutTime meaning: if the robot is very close to the specified distance, then operation will cut off before the specified time is reached
+
+//maxAutonSpeed (80, someVal) limits the motor power to less than 80 in both directions
+double maxAutonSpeed (int max, double val) {
+  if (abs(val) > max) {
+    if (val >= 0) {
+      return abs(max)*1.0;
+    } else {
+      return abs(max)*-1.0;
+    }
+  } else {
+    return val;
+  }
+}
+
 
 double goDistKp = 0.05;
 double goDistbaseLeft1Error;
@@ -530,7 +530,7 @@ double goDistbaseLeft2SetDist;
 double goDistbaseRight1SetDist;
 double goDistbaseRight2SetDist;
 
-void goDistance (double setDist, double setKp, int time, int errCutTime) {
+void goDistance (double setDist, double setKp, int time, int errCutTime, int maxSpeed = 80) {
   double goDistKp = setKp;
   int t = 0;
   int e = 0;
@@ -555,10 +555,16 @@ void goDistance (double setDist, double setKp, int time, int errCutTime) {
     goDistbaseLeft2Error = goDistbaseLeft2SetDist - goDistbaseLeft2Current;
     goDistbaseRight1Error = goDistbaseRight1SetDist - goDistbaseRight1Current;
     goDistbaseRight2Error = goDistbaseRight2SetDist - goDistbaseRight2Current;
+    left_mtr = maxAutonSpeed(maxSpeed, goDistbaseLeft1Error * goDistKp);
+    left_mtr2 = maxAutonSpeed(maxSpeed, goDistbaseLeft2Error * goDistKp);
+    right_mtr = maxAutonSpeed(maxSpeed, goDistbaseRight1Error * goDistKp);
+    right_mtr2 = maxAutonSpeed(maxSpeed, goDistbaseRight2Error * goDistKp);
+    /*
     left_mtr = goDistbaseLeft1Error * goDistKp;
     left_mtr2 = goDistbaseLeft2Error * goDistKp;
     right_mtr = goDistbaseRight1Error * goDistKp;
     right_mtr2 = goDistbaseRight2Error * goDistKp;
+    */
     pros::delay(1);
     t += 1;
     if ((((goDistbaseLeft1Error < 20) && (goDistbaseLeft1Error > 0)) || ((goDistbaseLeft1Error > -20) && (goDistbaseLeft1Error < 0))) || (goDistbaseLeft1Error == 0)) {
@@ -577,6 +583,63 @@ void goDistance (double setDist, double setKp, int time, int errCutTime) {
   left_mtr2 = 0;
   right_mtr = 0;
   right_mtr2 = 0;
+  pros::delay(100);
+}
+
+void turnFor (double setDist, double setKp, int time, int errCutTime, int maxSpeed = 80) {
+  double goDistKp = setKp;
+  int t = 0;
+  int e = 0;
+
+  //sets the absolute zero on the motor encoder to current value
+  left_mtr.tare_position();
+  left_mtr2.tare_position();
+  right_mtr.tare_position();
+  right_mtr2.tare_position();
+
+  goDistbaseLeft1SetDist = -setDist;
+  goDistbaseLeft2SetDist = -setDist;
+  goDistbaseRight1SetDist = setDist;
+  goDistbaseRight2SetDist = setDist;
+
+  while ((t < time) && (e < errCutTime)) {
+    goDistbaseLeft1Current = (int) left_mtr.get_position();
+    goDistbaseLeft2Current = (int) left_mtr2.get_position();
+    goDistbaseRight1Current = (int) right_mtr.get_position();
+    goDistbaseRight2Current = (int) right_mtr2.get_position();
+    goDistbaseLeft1Error = goDistbaseLeft1SetDist - goDistbaseLeft1Current;
+    goDistbaseLeft2Error = goDistbaseLeft2SetDist - goDistbaseLeft2Current;
+    goDistbaseRight1Error = goDistbaseRight1SetDist - goDistbaseRight1Current;
+    goDistbaseRight2Error = goDistbaseRight2SetDist - goDistbaseRight2Current;
+    left_mtr = maxAutonSpeed(maxSpeed, goDistbaseLeft1Error * goDistKp);
+    left_mtr2 = maxAutonSpeed(maxSpeed, goDistbaseLeft2Error * goDistKp);
+    right_mtr = maxAutonSpeed(maxSpeed, goDistbaseRight1Error * goDistKp);
+    right_mtr2 = maxAutonSpeed(maxSpeed, goDistbaseRight2Error * goDistKp);
+    /*
+    left_mtr = goDistbaseLeft1Error * goDistKp;
+    left_mtr2 = goDistbaseLeft2Error * goDistKp;
+    right_mtr = goDistbaseRight1Error * goDistKp;
+    right_mtr2 = goDistbaseRight2Error * goDistKp;
+    */
+    pros::delay(1);
+    t += 1;
+    if ((((goDistbaseLeft1Error < 20) && (goDistbaseLeft1Error > 0)) || ((goDistbaseLeft1Error > -20) && (goDistbaseLeft1Error < 0))) || (goDistbaseLeft1Error == 0)) {
+      pros::delay(1);
+      e += 1;
+    }
+    if (printPIDBasedAutonVal1) {
+      pros::lcd::print(1, "L1Curr: %d, L1SetDist: %d", goDistbaseLeft1Current, goDistbaseLeft1SetDist);
+      pros::lcd::print(2, "t: %d, e: %d", t, e);
+    }
+  }
+  if (printPIDBasedAutonVal1) {
+    pros::lcd::set_text(3, "exited while loop");
+  }
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(100);
 }
 
 
@@ -603,6 +666,10 @@ void initialize() {
 
 	pros::lcd::register_btn1_cb(on_center_button);
   //pros::Task updatePos (updateRobotPos, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update Robot Position");
+  //the tray task is initialized here because it'll be used in auton
+  pros::Task tray (updateTrayPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the tray motor");
+  pros::Task roller (updateRollerPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the roller motors");
+
 }
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -690,10 +757,14 @@ void autonomous() {
 void opcontrol() {
 
   pros::Task lift (updateLiftPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the lift motor");
-  pros::Task roller (updateRollerPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the roller motors");
-  pros::Task tray (updateTrayPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the tray motor");
+
+  autonTray = false;
+  autonRoller = 0;
 
 	while (true) {
+
+    //autonTray = false;
+    //autonRoller = 0;
 		// pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		//                  (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
 		//                  (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
@@ -727,8 +798,25 @@ void opcontrol() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (master.get_digital(DIGITAL_DOWN)) {
-      //turnTo(120*M_PI/180, 15000);
-      goDistance (1000, 1.5, 10000, 6000);
+      autonRoller = 1; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold
+      goDistance (2500, 1.5, 2000, 200, 80); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+      goDistance (1200, 1.5, 1500, 200, 80);
+      turnFor (1000, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+      goDistance (2000, 1.5, 1000, 200, 80);
+      left_roller_mtr = -90;
+			right_roller_mtr = -90;
+      pros::delay(1000);
+      autonTray = true; //false is null, true is tray PID stacking sequence
+      pros::delay(5000);
+      left_roller_mtr = 127;
+			right_roller_mtr = 127;
+      pros::delay(1000);
+      left_mtr = -100;
+	    left_mtr2 = -100;
+	    right_mtr = -100;
+      right_mtr2 = -100;
+      pros::delay(1000);
+
     }
 
 
