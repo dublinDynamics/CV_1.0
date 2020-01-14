@@ -215,7 +215,7 @@ static double currTrayVal = 0;
 static bool trayHold = false;
 
 //variables for the automated scoring sequence
-static const double autoTrayKp = 0.5;
+static const double autoTrayKp = 0.37;
 static const double autoTraySetVal = -1600;
 static bool autoTray = false;
 static bool autonTray = false; //this is used during auton, if it's true, then the tray will go up from fast to slow using pid (just like the up button on the controller)
@@ -798,24 +798,24 @@ void opcontrol() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (master.get_digital(DIGITAL_DOWN)) {
-      autonRoller = 1; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold
-      goDistance (2500, 1.5, 2000, 200, 80); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
-      goDistance (1200, 1.5, 1500, 200, 80);
-      turnFor (1000, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
-      goDistance (2000, 1.5, 1000, 200, 80);
-      left_roller_mtr = -90;
-			right_roller_mtr = -90;
-      pros::delay(1000);
+      autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold
+      goDistance (1000, 1.5, 3000, 200, 50); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+      goDistance (-250, 1.5, 1500, 200, 80);
+      turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+      goDistance (500, 1.5, 1000, 200, 80);
+      autonRoller = 1;
+      pros::delay(1500);
       autonTray = true; //false is null, true is tray PID stacking sequence
-      pros::delay(5000);
-      left_roller_mtr = 127;
-			right_roller_mtr = 127;
+      autonRoller = 3;
+      pros::delay(4000);
+      autonRoller = 2;
       pros::delay(1000);
+      autonRoller = 1;
       left_mtr = -100;
 	    left_mtr2 = -100;
 	    right_mtr = -100;
       right_mtr2 = -100;
-      pros::delay(1000);
+      pros::delay(400);
 
     }
 
