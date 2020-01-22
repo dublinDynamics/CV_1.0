@@ -96,11 +96,11 @@ int returnTrueSpeed (int controllerVal) {
 bool const printBaseVals = false;
 bool const printLiftVals = false;
 bool const printRollerVals = false;
-bool const printTrayVals = false;
+bool const printTrayVals = true;
 bool const printAngle = false;
 bool const printTime = false;
 bool const printPosTrackVal = false;
-bool const printPIDBasedAutonVal1 = true;
+bool const printPIDBasedAutonVal1 = false;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -110,6 +110,8 @@ static double liftSetVal = 0;
 static double liftErr = 0;
 static double currLiftVal = 0;
 static bool liftHold = false;
+static double autonLiftSetVal = -1100;
+static int autonLift = 0;
 
 void updateLiftPID (void* param) {
   while (true) {
@@ -133,6 +135,14 @@ void updateLiftPID (void* param) {
 			liftHold = false;
 			lift_mtr = 127;
 		}
+    else if (autonLift == 1) {
+      liftHold = false;
+      liftSetVal = autonLiftSetVal;
+    }
+    else if (autonLift == 2) {
+      liftHold = false;
+      liftSetVal = 0;
+    }
 		else if (liftHold == false) {
 			liftHold = true;
 			liftSetVal = currLiftVal;
@@ -193,6 +203,11 @@ void updateRollerPID (void* param) {
 			leftRollerSetVal = currLeftRollerVal;
 			rightRollerSetVal = currRightRollerVal;
 		}
+    if (autonRoller == 4) {
+			rollerHold = false;
+			left_roller_mtr = -80;
+			right_roller_mtr = -80;
+		}
 		//roller PID hold
 		if (rollerHold) {
 			left_roller_mtr = leftRollerErr * leftRollerKp;
@@ -217,8 +232,9 @@ static bool trayHold = false;
 //variables for the automated scoring sequence
 static const double autoTrayKp = 0.37;
 static const double autoTraySetVal = -1600;
+static const double autonTraySetVal = -1000;
 static bool autoTray = false;
-static bool autonTray = false; //this is used during auton, if it's true, then the tray will go up from fast to slow using pid (just like the up button on the controller)
+static int autonTray = 0; //this is used during auton, if it's true, then the tray will go up from fast to slow using pid (just like the up button on the controller)
 
 void updateTrayPID (void* param) {
   while (true) {
@@ -228,7 +244,7 @@ void updateTrayPID (void* param) {
     int diplayVal = (int) currTrayVal;
 		if (printTrayVals) {
       pros::lcd::print(1, "trayKp: %f", trayKp);
-      pros::lcd::print(2, "autoTray: %d", autoTray);
+      pros::lcd::print(2, "autoTray: %d, autonTray: %d", autoTray, autonTray);
 			pros::lcd::print(3, "trayHold: %d", trayHold);
 			pros::lcd::print(4, "currTrayVal: %d", diplayVal);
 			pros::lcd::print(5, "traySetVal: %d", traySetVal);
@@ -252,7 +268,7 @@ void updateTrayPID (void* param) {
 			trayHold = false;
 			tray_mtr = 32;
 		}
-    else if (master.get_digital(DIGITAL_UP) || autonTray) {
+    else if (master.get_digital(DIGITAL_UP) || (autonTray == 1)) {
 			trayHold = false;
 			//traySetVal = currTrayVal;
       traySetVal = autoTraySetVal;
@@ -266,6 +282,14 @@ void updateTrayPID (void* param) {
 			tray_mtr = trayErr * trayKp;
 
 		}
+    else if (autonTray == 2) {
+      trayHold = false;
+      traySetVal = autonTraySetVal;
+    }
+    else if (autonTray == 3) {
+      trayHold = false;
+      traySetVal = 0;
+    }
     else if (trayHold == false) {
 			trayHold = true;
 			traySetVal = currTrayVal;
@@ -669,6 +693,7 @@ void initialize() {
   //the tray task is initialized here because it'll be used in auton
   pros::Task tray (updateTrayPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the tray motor");
   pros::Task roller (updateRollerPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the roller motors");
+  pros::Task lift (updateLiftPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the lift motor");
 
 }
 /**
@@ -756,9 +781,9 @@ void autonomous() {
  */
 void opcontrol() {
 
-  pros::Task lift (updateLiftPID, (void*)"", TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT, "Update PID for the lift motor");
 
-  autonTray = false;
+
+  autonTray = 0;
   autonRoller = 0;
 
 	while (true) {
@@ -770,23 +795,23 @@ void opcontrol() {
 		//                  (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-    /*
+
 	 	//left base true speed
 	 	left_mtr = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y));
 		left_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y));
 	 	//right base true speed
 	  right_mtr = returnTrueSpeed (master.get_analog(ANALOG_RIGHT_Y));
 		right_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_RIGHT_Y));
-    */
 
 
+    /*
     //left base true speed
 	 	left_mtr = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y)) + returnTrueSpeed (master.get_analog(ANALOG_RIGHT_X))/2;
 		left_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y)) + returnTrueSpeed (master.get_analog(ANALOG_RIGHT_X))/2;
 	 	//right base true speed
 	  right_mtr = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y)) - returnTrueSpeed (master.get_analog(ANALOG_RIGHT_X))/2;
 		right_mtr2 = returnTrueSpeed (master.get_analog(ANALOG_LEFT_Y)) - returnTrueSpeed (master.get_analog(ANALOG_RIGHT_X))/2;
-
+    */
 
 	 	if (printBaseVals){
 	     	pros::lcd::print(3, "left_mtr: %d", left_mtr);
@@ -798,18 +823,29 @@ void opcontrol() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (master.get_digital(DIGITAL_DOWN)) {
-      autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold
-      goDistance (1000, 1.5, 3000, 200, 50); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
-      goDistance (-250, 1.5, 1500, 200, 80);
-      turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
-      goDistance (500, 1.5, 1000, 200, 80);
-      autonRoller = 1;
-      pros::delay(1500);
-      autonTray = true; //false is null, true is tray PID stacking sequence
-      autonRoller = 3;
-      pros::delay(4000);
-      autonRoller = 2;
+      //autonLift: 0 = null, 1 = flip out up PID, 2 = flip out PID at 0
+      //autonTray: 0 = null, 1 = auto stack sequence, 2 = flip out up PID, 3 = flip out PID at 0
+      /*
+      autonTray = 2;
       pros::delay(1000);
+      autonLift = 1;
+      pros::delay(1000);
+      autonLift = 2;
+      pros::delay(1000);
+      autonTray = 3;
+      pros::delay(1000);
+      */
+
+      autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake 1/3 speed
+      goDistance (1100, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+      goDistance (-350, 1.5, 1500, 200, 80);
+      turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+      goDistance (580, 1.5, 1000, 200, 80);
+      autonRoller = 4;
+      pros::delay(700);
+      autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+      autonRoller = 3;
+      pros::delay(2500);
       autonRoller = 1;
       left_mtr = -100;
 	    left_mtr2 = -100;
