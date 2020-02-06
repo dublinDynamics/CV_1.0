@@ -28,8 +28,8 @@
 
 #define LIFT_PORT 12
 
-#define LEFT_ROLLER_PORT 13 //was 18, now 13
-#define RIGHT_ROLLER_PORT 18 //was 13, now 18
+#define LEFT_ROLLER_PORT 14 //was 18, then 13 (port dead), now 14
+#define RIGHT_ROLLER_PORT 17 //was 13, then 18, now 17
 
 #define TRAY_PORT 1 //was 19, now 1
 
@@ -96,7 +96,7 @@ int returnTrueSpeed (int controllerVal) {
 bool const printBaseVals = false;
 bool const printLiftVals = false;
 bool const printRollerVals = false;
-bool const printTrayVals = true;
+bool const printTrayVals = false;
 bool const printAngle = false;
 bool const printTime = false;
 bool const printPosTrackVal = false;
@@ -205,8 +205,13 @@ void updateRollerPID (void* param) {
 		}
     if (autonRoller == 4) {
 			rollerHold = false;
-			left_roller_mtr = -80;
-			right_roller_mtr = -80;
+			left_roller_mtr = -65;
+			right_roller_mtr = -65;
+		}
+    if (autonRoller == 5) {
+			rollerHold = false;
+			left_roller_mtr = -30;
+			right_roller_mtr = -30;
 		}
 		//roller PID hold
 		if (rollerHold) {
@@ -233,6 +238,7 @@ static bool trayHold = false;
 static const double autoTrayKp = 0.37;
 static const double autoTraySetVal = -1600;
 static const double autonTraySetVal = -1000;
+static double autonTrayKp = 0.10;
 static bool autoTray = false;
 static int autonTray = 0; //this is used during auton, if it's true, then the tray will go up from fast to slow using pid (just like the up button on the controller)
 
@@ -274,7 +280,7 @@ void updateTrayPID (void* param) {
       traySetVal = autoTraySetVal;
 
       if (currTrayVal < -800) {
-        trayKp = 0.15;
+        trayKp = autonTrayKp;
       } else {
         trayKp = autoTrayKp;
       }
@@ -483,7 +489,7 @@ double shortestTurn (double targetAngle, double turnToKp = 100.0, double turnToK
     turnToDeriv = turnToErr - turnToLastErr;
     //prints stuff
     if (printAngle) {
-      pros::lcd::print(6, "cA: %f", currA);
+      pros::lcd::print(6, "cA: %f, clw?: %d, tErr: %f", currA, clockwise, turnToErr);
     }
     //returns motor power
     shortestTurnMotorPower = (turnToErr * turnToKp) + (turnToDeriv * turnToKd);
@@ -724,47 +730,179 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-  //base drive back
-  left_mtr = -100;
-	left_mtr2 = -100;
-	right_mtr = -100;
-	right_mtr2 = -100;
-  pros::delay(300);
-  //base drive forward and tray up
-  left_mtr = 100;
-	left_mtr2 = 100;
-	right_mtr = 100;
-	right_mtr2 = 100;
-  tray_mtr = -127;
-  pros::delay(300);
-  //base stop and tray back down
-  left_mtr = 0;
-	left_mtr2 = 0;
-	right_mtr = 0;
-	right_mtr2 = 0;
-  tray_mtr = 127;
-  pros::delay(300);
+  //autonLift: 0 = null, 1 = flip out up PID, 2 = flip out PID at 0
+  //autonTray: 0 = null, 1 = auto stack sequence, 2 = flip out up PID, 3 = flip out PID at 0
   /*
-  //turn left
-  left_mtr = -80;
-	left_mtr2 = -80;
-	right_mtr = 80;
-	right_mtr2 = 80;
-  pros::delay(400);
-  //stop
-  left_mtr = 0;
-	left_mtr2 = 0;
-	right_mtr = 0;
-	right_mtr2 = 0;
-  pros::delay(300);
-  //go straight
-  left_mtr = 100;
-	left_mtr2 = 100;
-	right_mtr = 100;
-	right_mtr2 = 100;
-  pros::delay(500);
+  autonTray = 2;
+  pros::delay(1000);
+  autonLift = 1;
+  pros::delay(1000);
+  autonLift = 2;
+  pros::delay(1000);
+  autonTray = 3;
+  pros::delay(1000);
   */
 
+  /*
+  //blue small side 5 cube
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1200, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  goDistance (-450, 1.5, 1500, 200, 80);
+  turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (580, 1.5, 1000, 200, 80);
+  autonRoller = 4;
+  pros::delay(400);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 5;
+  pros::delay(1000);
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(500);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
+  */
+  /*
+  //blue small side 6 cube
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1200, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  turnFor (-59, 1.5, 1000, 200, 80);
+  goDistance (200, 1.5, 1000, 200, 90);
+  goDistance (-200, 1.5, 1000, 200, 90);
+  turnFor (59, 1.5, 1000, 200, 80);
+  goDistance (-450, 1.5, 1500, 200, 80);
+  turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (580, 1.5, 1000, 200, 80);
+  autonRoller = 4;
+  pros::delay(400);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 5;
+  pros::delay(1000);
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(500);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
+  */
+  /*
+  //red small side 6 cube
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1200, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  turnFor (59, 1.5, 1000, 200, 80);
+  goDistance (200, 1.5, 1000, 200, 90);
+  goDistance (-200, 1.5, 1000, 200, 90);
+  turnFor (-59, 1.5, 1000, 200, 80);
+  goDistance (-450, 1.5, 1500, 200, 80);
+  turnFor (-400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (580, 1.5, 1000, 200, 80);
+  autonRoller = 4;
+  pros::delay(400);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 5;
+  pros::delay(1000);
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(500);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
+  */
+  /*
+  //red small side 8 cube
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1200, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  goDistance (-450, 1.5, 1500, 200, 80);
+  turnFor (59, 1.5, 1000, 200, 80);
+  goDistance (-500, 1.5, 1500, 200, 100);
+  goDistance (1000, 1.5, 6000, 200, 43);
+  turnFor (59, 1.5, 1000, 200, 80);
+  goDistance (200, 1.5, 1000, 200, 90);
+  goDistance (-200, 1.5, 1000, 200, 90);
+  turnFor (-59, 1.5, 1000, 200, 80);
+  goDistance (-450, 1.5, 1500, 200, 80);
+  turnFor (-400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (580, 1.5, 1000, 200, 80);
+  autonRoller = 4;
+  pros::delay(400);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 5;
+  pros::delay(1000);
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(500);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
+  */
+
+
+
+  //red small side 8 cube (working)
+  autonTrayKp = 0.17;
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1200, 1.0, 6000, 100, 70); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  goDistance (-450, 0.85, 1500, 100, 127);
+  turnFor (150, 1.2, 1000, 100, 80);
+  goDistance (-750, 1.0, 1500, 100, 127);
+  turnFor (-165, 1.2, 1000, 100, 80);
+  goDistance (950, 1.0, 6000, 300, 50);
+  autonRoller = 3;
+  goDistance (-600, 0.8, 5000, 150, 110);
+  turnFor (-390, 2.0, 5000, 150, 55); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (650, 1.5, 1000, 100, 80);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(400);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
 }
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -785,6 +923,7 @@ void opcontrol() {
 
   autonTray = 0;
   autonRoller = 0;
+  autonTrayKp = 0.10;
 
 	while (true) {
 
@@ -823,36 +962,7 @@ void opcontrol() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (master.get_digital(DIGITAL_DOWN)) {
-      //autonLift: 0 = null, 1 = flip out up PID, 2 = flip out PID at 0
-      //autonTray: 0 = null, 1 = auto stack sequence, 2 = flip out up PID, 3 = flip out PID at 0
-      /*
-      autonTray = 2;
-      pros::delay(1000);
-      autonLift = 1;
-      pros::delay(1000);
-      autonLift = 2;
-      pros::delay(1000);
-      autonTray = 3;
-      pros::delay(1000);
-      */
-
-      autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake 1/3 speed
-      goDistance (1100, 1.5, 6000, 200, 43); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
-      goDistance (-350, 1.5, 1500, 200, 80);
-      turnFor (400, 1.5, 1000, 200, 80); //positive ticks turns left, negative turns right, same arguments as goDistance()
-      goDistance (580, 1.5, 1000, 200, 80);
-      autonRoller = 4;
-      pros::delay(700);
-      autonTray = 1; //0 = null, 1 = tray PID stacking sequence
-      autonRoller = 3;
-      pros::delay(2500);
-      autonRoller = 1;
-      left_mtr = -100;
-	    left_mtr2 = -100;
-	    right_mtr = -100;
-      right_mtr2 = -100;
-      pros::delay(400);
-
+      //shortestTurn (130*M_PI/180);
     }
 
 
