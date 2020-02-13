@@ -210,8 +210,8 @@ void updateRollerPID (void* param) {
 		}
     if (autonRoller == 5) {
 			rollerHold = false;
-			left_roller_mtr = -30;
-			right_roller_mtr = -30;
+			left_roller_mtr = -25;
+			right_roller_mtr = -25;
 		}
 		//roller PID hold
 		if (rollerHold) {
@@ -873,7 +873,7 @@ void autonomous() {
   */
 
 
-
+  /*
   //red small side 8 cube (working)
   autonTrayKp = 0.17;
   autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
@@ -886,6 +886,38 @@ void autonomous() {
   autonRoller = 3;
   goDistance (-600, 0.8, 5000, 150, 110);
   turnFor (-390, 2.0, 5000, 150, 55); //positive ticks turns left, negative turns right, same arguments as goDistance()
+  goDistance (650, 1.5, 1000, 100, 80);
+  autonTray = 1; //0 = null, 1 = tray PID stacking sequence
+  autonRoller = 3;
+  pros::delay(1000);
+  autonRoller = 2;
+  pros::delay(400);
+  autonRoller = 1;
+  left_mtr = -100;
+  left_mtr2 = -100;
+  right_mtr = -100;
+  right_mtr2 = -100;
+  pros::delay(200);
+  left_mtr = 0;
+  left_mtr2 = 0;
+  right_mtr = 0;
+  right_mtr2 = 0;
+  pros::delay(200);
+  */
+
+  //blue small side 8 cube (working)
+  autonTrayKp = 0.17;
+  autonRoller = 2; //0 = null, 1 = outtake, 2 = intake, 3 = roller PID Hold, 4 = outtake at 65 speed, 5 = outtake at 30 speed
+  goDistance (1300, 1.0, 6000, 100, 70); //go 1000 ticks forward with 1.5 kP for 10000 frames, if value reached stop after 6000 frames. max speed is 80
+  goDistance (-550, 0.85, 1500, 100, 127);
+  turnFor (-150, 1.2, 1000, 100, 80);
+  goDistance (-750, 1.0, 1500, 100, 127);
+  turnFor (160, 1.2, 1000, 100, 80);
+  goDistance (1050, 1.0, 6000, 300, 50);
+  goDistance (-600, 0.8, 5000, 150, 110);
+  autonRoller = 5;
+  turnFor (340, 2.0, 5000, 150, 55); //positive ticks turns left, negative turns right, same arguments as goDistance() Shishir reduced by 10 ticks
+  autonRoller = 3;
   goDistance (650, 1.5, 1000, 100, 80);
   autonTray = 1; //0 = null, 1 = tray PID stacking sequence
   autonRoller = 3;
